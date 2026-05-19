@@ -1,0 +1,24 @@
+# Entornos virtuales
+venv/
+env/
+.env
+
+# Python caché
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Archivos de sistema y VS Code
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs y bases de datos locales
+*.log
+*.db
+*.sqlite3
+
+# Archivos temporales de D5 Render u otras herramientas
+*.tmp
+temp/

@@ -1,0 +1,46 @@
+# Core ML/DL
+torch==2.3.1
+torchvision==2.3.1
+torchaudio==2.3.1
+torch-geometric==2.5.0
+transformers==4.40.0
+
+# Numerical & Scientific
+numpy==1.26.0
+pandas==2.2.0
+scipy==1.12.0
+scikit-learn==1.4.0
+
+# Acceleration
+numba==0.59.0
+
+# Financial & TS
+yfinance==0.2.40
+arch==6.2.0
+statsmodels==0.14.2
+
+# Graph & Topology
+networkx==3.3
+
+# RL & Optimization
+stable-baselines3==2.3.0
+ray==2.15.0
+
+# NLP/Sentiment (FinBERT)
+nltk==3.8.1
+textblob==0.17.1
+
+# Utilities
+websockets==12.0
+flask==3.0.3
+flask-cors==4.0.0
+python-dotenv==1.0.1
+pydantic==2.8.0
+loguru==0.7.2
+
+# Data processing
+h5py==3.11.0
+
+# Visualization (optional)
+matplotlib==3.8.2
+plotly==5.18.0

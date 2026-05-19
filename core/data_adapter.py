@@ -70,6 +70,29 @@ class DataAdapter:
         # Default: asumir acción
         return 'stock'
     
+    @staticmethod
+    def normalize_symbol(symbol: str) -> str:
+        """
+        Normaliza el símbolo para asegurar que sea correcto
+        Añade sufijos automáticamente si es necesario
+        """
+        symbol_upper = symbol.upper()
+        
+        # Si ya tiene punto, no modificar
+        if '.' in symbol_upper:
+            return symbol_upper
+        
+        # Auto-complete acciones argentinas sin suffix
+        argentina_stocks = ['PAMP', 'GGAL', 'TXAR', 'YPF', 'BMA', 'CEPU', 'MIRG']
+        if symbol_upper in argentina_stocks:
+            logger.info(f"🔧 Auto-corrigiendo {symbol_upper} → {symbol_upper}.BA")
+            return f"{symbol_upper}.BA"
+        
+        # Auto-complete acciones USA (opcional)
+        # Si no tiene punto y no es una cripto conocida, asumir que es USA
+        
+        return symbol_upper
+    
     async def fetch_crypto_data(self, symbol: str, timeframe: str = '1h', limit: int = 500) -> pd.DataFrame:
         """
         Obtiene datos de criptomonedas desde Binance
@@ -164,6 +187,9 @@ class DataAdapter:
         Returns:
             DataFrame con OHLCV normalizado
         """
+        # NORMALIZAR SÍMBOLO PRIMERO
+        symbol = self.normalize_symbol(symbol)
+        
         asset_type = self.detect_asset_type(symbol)
         logger.info(f"🔍 Detectado tipo: {asset_type} para {symbol}")
         

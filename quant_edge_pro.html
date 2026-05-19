@@ -126,6 +126,43 @@ html, body {
   text-transform: uppercase;
 }
 
+.symbol-dropdown {
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--r) var(--r);
+}
+
+.symbol-dropdown-item {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border2);
+  cursor: pointer;
+  transition: all 0.1s;
+  font-size: 11px;
+  color: var(--text2);
+}
+
+.symbol-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.symbol-dropdown-item:hover {
+  background: var(--surface2);
+  color: var(--accent);
+}
+
+.symbol-dropdown-item-name {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.symbol-dropdown-item-desc {
+  font-size: 10px;
+  color: var(--text3);
+  margin-top: 2px;
+}
+
 .tf-group {
   display: flex;
   align-items: center;
@@ -820,9 +857,13 @@ canvas { display: block; }
     <span class="brand">QUANT EDGE <em>PRO</em></span>
     <div class="topbar-divider"></div>
 
-    <div class="symbol-input-wrap">
+    <div class="symbol-input-wrap" title="Ejemplos: BTCUSDT, PAMP (auto→PAMP.BA), AAPL, EUR/USD">
       <span class="symbol-prefix">SYM</span>
-      <input id="symbolInput" type="text" value="BTCUSDT" autocomplete="off" spellcheck="false">
+      <div style="position: relative; flex: 1;">
+        <input id="symbolInput" type="text" value="BTCUSDT" autocomplete="off" spellcheck="false" placeholder="PAMP, AAPL, BTC/USDT...">
+        <div id="symbolDropdown" class="symbol-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--surface3); border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--r) var(--r); max-height: 200px; overflow-y: auto; z-index: 1000;">
+        </div>
+      </div>
     </div>
 
     <div class="tf-group" id="tfGroup">
@@ -1064,14 +1105,89 @@ document.addEventListener('DOMContentLoaded', () => {
   initTabs();
   initTfButtons();
   document.getElementById('btnAnalyze').addEventListener('click', analyze);
-  document.getElementById('symbolInput').addEventListener('keydown', e => {
+  
+  // Symbol input handlers
+  const symbolInput = document.getElementById('symbolInput');
+  
+  symbolInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') analyze();
+    if (e.key === 'Escape') hideSymbolDropdown();
+  });
+  
+  // Auto-search as user types
+  symbolInput.addEventListener('input', e => {
+    const query = e.target.value.trim();
+    if (query.length > 0) {
+      searchSymbols(query);
+    } else {
+      hideSymbolDropdown();
+    }
+  });
+  
+  // Hide dropdown when clicking outside
+  document.addEventListener('click', e => {
+    if (e.target !== symbolInput && !e.target.closest('.symbol-dropdown')) {
+      hideSymbolDropdown();
+    }
   });
   
   // Iniciar WebSockets en lugar de REST polling
   initTickerWS();
   initTradingViewEmbed('BTCUSDT', '60');
 });
+
+// ── SYMBOL SEARCH ──────────────────────────────────────────────────────────
+let lastSearchTimeout = null;
+
+async function searchSymbols(query) {
+  // Limpiar búsqueda anterior
+  clearTimeout(lastSearchTimeout);
+  
+  // Debounce: esperar 300ms antes de buscar
+  lastSearchTimeout = setTimeout(async () => {
+    try {
+      // Enviar búsqueda al servidor
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({
+          type: 'search_symbols',
+          query: query
+        }));
+      }
+    } catch(e) {
+      console.error('Error en búsqueda:', e);
+    }
+  }, 300);
+}
+
+function showSymbolDropdown(results) {
+  const dropdown = document.getElementById('symbolDropdown');
+  
+  if (!results || results.length === 0) {
+    hideSymbolDropdown();
+    return;
+  }
+  
+  dropdown.innerHTML = results.map(result => `
+    <div class="symbol-dropdown-item" onclick="selectSymbol('${result.symbol}')">
+      <div class="symbol-dropdown-item-name">${result.symbol}</div>
+      <div class="symbol-dropdown-item-desc">${result.name} ${result.exchange ? '• ' + result.exchange : ''} ${result.country ? '• ' + result.country : ''}</div>
+    </div>
+  `).join('');
+  
+  dropdown.style.display = 'block';
+}
+
+function hideSymbolDropdown() {
+  const dropdown = document.getElementById('symbolDropdown');
+  dropdown.style.display = 'none';
+  dropdown.innerHTML = '';
+}
+
+function selectSymbol(symbol) {
+  document.getElementById('symbolInput').value = symbol;
+  hideSymbolDropdown();
+  analyze();
+}
 
 // ── TRADINGVIEW WIDGET (EMBED) ──────────────────────────────────────────────
 function initTradingViewEmbed(symbol, interval) {

@@ -13,6 +13,7 @@ from functools import wraps
 
 from ..core.config import get_config
 from ..agents.ensemble import EnsembleTrader
+from ..core.symbol_search import get_search_engine
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -94,6 +95,9 @@ class QuantEdgeServer:
         
         elif msg_type == 'get_status':
             await self.handle_get_status(websocket, data)
+        
+        elif msg_type == 'search_symbols':
+            await self.handle_search_symbols(websocket, data)
         
         else:
             await websocket.send(json.dumps({
@@ -256,6 +260,48 @@ class QuantEdgeServer:
             except Exception as e:
                 logger.error(f"Error in market stream: {e}")
                 await asyncio.sleep(1)
+    
+    async def handle_search_symbols(self, websocket, data: Dict):
+        """Search for trading symbols (auto-complete)"""
+        query = data.get('query', '').strip()
+        
+        if not query:
+            await websocket.send(json.dumps({
+                'type': 'search_results',
+                'query': query,
+                'results': []
+            }))
+            return
+        
+        try:
+            search_engine = get_search_engine()
+            results = await search_engine.search_all(query)
+            
+            # Convert to JSON-serializable format
+            results_json = [
+                {
+                    'symbol': r['symbol'],
+                    'name': r.get('name', ''),
+                    'type': r.get('type', 'unknown'),
+                    'exchange': r.get('exchange', ''),
+                    'country': r.get('country', '')
+                }
+                for r in results
+            ]
+            
+            await websocket.send(json.dumps({
+                'type': 'search_results',
+                'query': query,
+                'results': results_json,
+                'timestamp': datetime.now().isoformat()
+            }))
+            
+        except Exception as e:
+            logger.error(f"Error searching symbols: {e}")
+            await websocket.send(json.dumps({
+                'type': 'error',
+                'message': f'Search error: {str(e)}'
+            }))
     
     async def start(self):
         """Start WebSocket server"""
